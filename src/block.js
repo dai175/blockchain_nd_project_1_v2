@@ -45,7 +45,12 @@ class Block {
             // Returning the Block is not valid
             
             // Returning the Block is valid
-
+            let hash = this.hash;
+            self.hash = SHA256(JSON.stringify(self));
+            if (hash !== self.hash) {
+                reject(false);
+            }
+            resolve(true);
         });
     }
 
@@ -64,7 +69,12 @@ class Block {
         // Parse the data to an object to be retrieve.
 
         // Resolve with the data if the object isn't the Genesis block
-
+        let self = this;
+        return new Promise((resolve, reject) => {
+            let encoded_data = self.body;
+            let decoded_data = hex2ascii(encoded_data);
+            resolve(JSON.parse(decoded_data));
+        });
     }
 
 }
