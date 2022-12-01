@@ -67,8 +67,8 @@ class Blockchain {
             try {
                 block.height = this.height;
                 block.time = new Date().getTime().toString().slice(0, -3);
-                if (self.height > 0) {
-                    block.previousBlockHash = self.chain[self.height - 1].hash;
+                if (self.height > -1) {
+                    block.previousBlockHash = self.chain[self.height].hash;
                 }
                 block.hash = SHA256(JSON.stringify(block)).toString();
                 self.chain.push(block);
@@ -117,18 +117,23 @@ class Blockchain {
         let self = this;
         return new Promise(async (resolve, reject) => {
             try {
-                let messageTime = parseInt(message.split(':')[1]);
-                let currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
-                let diffTime = currentTime - messageTime;
-                if (diffTime > 5 * 60) {
+                let result = await self.validateChain();
+                if (result.length > 0) {
                     return reject(false);
+                } else {
+                    let messageTime = parseInt(message.split(':')[1]);
+                    let currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
+                    let diffTime = currentTime - messageTime;
+                    if (diffTime > 5 * 60) {
+                        return reject(false);
+                    }
+                    if (!bitcoinMessage.verify(message, address, signature)) {
+                        return reject(false);
+                    }
+                    let block = new BlockClass.Block({owner: address, star: star})
+                    await self._addBlock(block)
+                    return resolve(block);
                 }
-                if (!bitcoinMessage.verify(message, address, signature)) {
-                    return reject(false);
-                }
-                let block = new BlockClass.Block({owner: address, star: star})
-                await self._addBlock(block)
-                return resolve(block);
             } catch(e) {
                 return reject(false);
             }
@@ -209,13 +214,14 @@ class Blockchain {
         let self = this;
         let errorLog = [];
         return new Promise(async (resolve, reject) => {
-            for (let i = 0; i < this.chain.length; i) {
-                let block = this.chain[i];
-                if (!block.validate()) {
+            for (let i = 0; i < self.chain.length; i++) {
+                let block = self.chain[i];
+                let result = await block.validate()
+                if (!result) {
                     errorLog.push(`validationError: ${JSON.stringify(block)}`);
                 }
                 if (i > 0) {
-                    let previousBlock = this.chain[i - 1];
+                    let previousBlock = self.chain[i - 1];
                     if (block.previousBlockHash !== previousBlock.hash) {
                         errorLog.push(`previousBlockHashError: ${JSON.stringify(block)}`);
                     }
