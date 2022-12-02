@@ -45,14 +45,9 @@ class Block {
             // Returning the Block is not valid
 
             // Returning the Block is valid
-            let hash = self.hash;
-            self.hash = null;
-            let newHash = SHA256(JSON.stringify(self)).toString();
-            self.hash = hash;
-            if (hash !== newHash) {
-                resolve(false);
-            }
-            resolve(true);
+            let clonedBlock = {...self, hash: null};
+            let newHash = SHA256(JSON.stringify(clonedBlock)).toString();
+            resolve(self.hash === newHash)
         });
     }
 
